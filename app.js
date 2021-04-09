@@ -48,19 +48,21 @@ client.on('message', (msg) => {
     msg.channel.send(JSON.stringify(config));
   }
   if (message.startsWith("set")) {
-
+    const parts = message.split(" ");
     if (message.startsWith("set server")) {
-      config.serverOffset = parseInt(message.split(" ")[2]) - 1 || 0;
+      config.serverOffset = parseInt(parts[2]) - 1 || 0;
       clearTimeout(ws.currentTimeout);
       ws.setNextSiegeAlert(new Date());
     } else if (message.startsWith("set warning")) {
-      config.advanceWarningTime = parseInt(message.split(" ")[2]) * minuteMs || 0;
+      config.advanceWarningTime = parseInt(parts[2]) * minuteMs || 0;
       clearTimeout(ws.currentTimeout);
       ws.setNextSiegeAlert(new Date());
     } else if (message.startsWith("set prefix")) {
-      config.prefix = (message.split(" ")[2]) || "";
+      config.prefix = (parts[2]) || "";
+    } else if (message.startsWith("set str ")) {
+      config[parts[2]] = parts.slice(3).join(" ");
     } else {
-      msg.channel.send("set [server <serverNumber>|warning <minutes>|prefix <prefix>]");
+      msg.channel.send("set [server <serverNumber>|warning <minutes>|prefix <prefix>|str <key> <value>]");
     }
 
     msg.channel.send(JSON.stringify(config));
