@@ -14,10 +14,12 @@ const config = {
   advanceWarningTime: 2 * minuteMs,
   serverOffset: 3,
   prefix: "<",
+  debugChannel: "829794369888059395",
   outputChannel: "829794369888059395",
   pingRole: "829802122362224680",
   adminUser: "175293761323008000",
-  pingMessage: "Time to siege!"
+  pingMessage: "Time to siege!",
+  logLevel: "i",
 }
 
 client.login(process.env.BOT_TOKEN);
@@ -25,10 +27,10 @@ client.login(process.env.BOT_TOKEN);
 client.on('ready', () => {
   ws.setNextSiegeAlert = function (startingTime) {
     const timeToNextMoment = calculateTimetoNextMoment(startingTime, getNextSiegeMoments(startingTime));
-    sendDebugMessage("Hours to next alert: " + timeToNextMoment / hourMs);
+    sendInfoMessage("Hours to next alert: " + timeToNextMoment / hourMs);
     ws.currentTimeout = setTimeout(function () {
       sendPingMessage();
-      ws.setNextSiegeAlert(new Date(startingTime.getTime() + hourMs));
+      ws.setNextSiegeAlert(new Date(Math.max(new Date().getTime(), startingTime) + hourMs));
     }, timeToNextMoment)
   }
   ws.setNextSiegeAlert(new Date())
@@ -79,11 +81,23 @@ function getNextSiegeMoments(startingTime) {
   ];
   if (startingTime.getUTCDay() === 7) {
     // no last siege on sunday
-    siegeMoments.pop();
+    siegeMoments.splice(4, 1);
+    sendDebugMessage("Removed last sunday siege");
   }
   siegeMoments.push(new Date(siegeMoments[0] + dayMs).getTime());
   siegeMoments.push(new Date(siegeMoments[1] + dayMs).getTime());
   siegeMoments.push(new Date(siegeMoments[2] + dayMs).getTime());
+  // remove those before starting time
+  let i = 0;
+  while (i < siegeMoments.length) {
+    let moment = siegeMoments[i];
+    if (moment <= startingTime) {
+      sendDebugMessage("Removing " + displayDate(siegeMoments.splice(i, 1)[0]) + " since it is not after " + displayDate(startingTime));
+    } else {
+      sendDebugMessage("Accepting " + displayDate(siegeMoments[i]) + " since it is after " + displayDate(startingTime))
+      i++;
+    }
+  }
   return siegeMoments;
 }
 
@@ -91,13 +105,17 @@ function calculateTimetoNextMoment(startingTime, availableMoments) {
   let timeToNextMoment = dayMs;
   availableMoments.forEach(moment => {
     if (moment > startingTime) { // TODO consider case when difference is less than advanceWarningTime
-      var d = new Date().getTime();
+      const d = new Date().getTime();
       const timeToMoment = (-d + moment);
-      if (timeToMoment > config.advanceWarningTime) {
-        timeToNextMoment = Math.min(timeToMoment, timeToNextMoment)
-      }
+      timeToNextMoment = Math.min(timeToMoment, timeToNextMoment)
+      sendDebugMessage("OK moment " + displayDate(moment));
+    } else {
+      sendDebugMessage("Unsuitable moment " + displayDate(moment) + " before " + displayDate(startingTime));
     }
   });
+  if (timeToNextMoment === dayMs) {
+    sendDebugMessage("Failed to find next moment!");
+  }
   return timeToNextMoment - config.advanceWarningTime;
 }
 
@@ -106,6 +124,19 @@ function sendPingMessage() {
 }
 
 function sendDebugMessage(message) {
-  console.log(message);
-  client.channels.cache.get(config.outputChannel).send(message);
+  console.log("DEBUG", message);
+  if (config.logLevel.indexOf("d") >= 0) {
+    client.channels.cache.get(config.debugChannel).send(message);
+  }
+}
+
+function sendInfoMessage(message) {
+  console.log("INFO", message);
+  if (config.logLevel.indexOf("i") >= 0) {
+    client.channels.cache.get(config.outputChannel).send(message);
+  }
+}
+
+function displayDate(number) {
+  return new Date(number).toString();
 }
