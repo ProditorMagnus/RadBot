@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "tsc -p ./src --outDir ./build",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+    "start": "npm run build && node ./build/app.js",
+    "dev": "npm run build -- -w"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +15,9 @@
   "dependencies": {
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.37",
+    "@types/ws": "^7.4.1"
   }
 }
