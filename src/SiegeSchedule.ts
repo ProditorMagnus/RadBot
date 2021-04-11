@@ -16,7 +16,7 @@ export class SiegeSchedule {
             new Date(startingTime).setUTCHours(this.config.serverOffset + 15, 0, 0, 0),
             new Date(startingTime).setUTCHours(this.config.serverOffset + 20, 0, 0, 0),
         ];
-        if (startingTime.getUTCDay() === 7) {
+        if (startingTime.getUTCDay() === 0) {
             // no last siege on sunday
             siegeMoments.splice(4, 1);
             console.log("Removed last sunday siege");
