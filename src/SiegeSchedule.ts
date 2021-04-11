@@ -8,7 +8,7 @@ export class SiegeSchedule {
         this.config = config;
     }
 
-    public getNextSiegeMoments(startingTime: Date): number[] {
+    public getNextSiegeMoments(startingTime: Date): Date[] {
         let siegeMoments = [
             new Date(startingTime).setUTCHours(this.config.serverOffset, 0, 0, 0),
             new Date(startingTime).setUTCHours(this.config.serverOffset + 5, 0, 0, 0),
@@ -35,15 +35,15 @@ export class SiegeSchedule {
                 i++;
             }
         }
-        return siegeMoments;
+        return siegeMoments.map((d) => new Date(d));
     }
 
-    public calculateTimetoNextMoment(startingTime: number, availableMoments: number[]) {
+    public calculateTimetoNextMoment(startingTime: Date, availableMoments: Date[]) {
         let timeToNextMoment = Utils.dayMs;
         availableMoments.forEach(moment => {
             if (moment > startingTime) { // TODO consider case when difference is less than advanceWarningTime
                 const d = new Date().getTime();
-                const timeToMoment = (-d + moment);
+                const timeToMoment = (-d + moment.getTime());
                 timeToNextMoment = Math.min(timeToMoment, timeToNextMoment)
                 console.log("OK moment " + Utils.displayDate(moment));
             } else {

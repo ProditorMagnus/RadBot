@@ -12,30 +12,30 @@ const ws = {
   setNextSiegeAlert: undefined
 }
 const config = {
-  advanceWarningTime: 2 * Utils.minuteMs,
-  serverOffset: 3,
-  prefix: "<",
-  debugChannel: "829794369888059395",
-  outputChannel: "829794369888059395",
-  pingRole: "829802122362224680",
-  adminUser: "175293761323008000",
-  pingMessage: "Time to siege!",
-  logLevel: "i",
+  advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
+  serverOffset: parseInt(process.env.SERVER_OFFSET) || 3,
+  prefix: process.env.PREFIX || "<",
+  debugChannel: process.env.DEBUG_CHANNEL || "829794369888059395",
+  outputChannel: process.env.OUTPUT_CHANNEL || "829794369888059395",
+  pingRole: process.env.PING_ROLE || "829802122362224680",
+  adminUser: process.env.ADMIN_USER || "175293761323008000",
+  pingMessage: process.env.PING_MESSAGE || "Time to siege!",
+  logLevel: process.env.LOG_LEVEL || "di",
 } as Config;
 const siegeSchedule = new SiegeSchedule(config);
 
 client.login(process.env.BOT_TOKEN);
 
 client.on('ready', () => {
-  ws.setNextSiegeAlert = function (startingTime) {
+  ws.setNextSiegeAlert = function (startingTime: Date) {
     const timeToNextMoment = siegeSchedule.calculateTimetoNextMoment(startingTime, siegeSchedule.getNextSiegeMoments(startingTime));
-    sendInfoMessage("Hours to next alert: " + timeToNextMoment / Utils.hourMs);
+    sendDebugMessage("Hours to next alert: " + timeToNextMoment / Utils.hourMs);
     ws.currentTimeout = setTimeout(function () {
       sendPingMessage();
-      ws.setNextSiegeAlert(new Date(Math.max(new Date().getTime(), startingTime) + Utils.hourMs));
+      ws.setNextSiegeAlert(new Date(Math.max(new Date().getTime(), startingTime.getTime()) + Utils.hourMs));
     }, timeToNextMoment)
   }
-  ws.setNextSiegeAlert(new Date())
+  ws.setNextSiegeAlert(new Date());
 })
 
 client.on('message', (msg) => {
@@ -64,6 +64,7 @@ client.on('message', (msg) => {
     } else if (message.startsWith("set prefix")) {
       config.prefix = (parts[2]) || "";
     } else if (message.startsWith("set str ")) {
+      // consider accepting #channel and @role inputs
       config[parts[2]] = parts.slice(3).join(" ");
     } else {
       msg.channel.send("set [server <serverNumber>|warning <minutes>|prefix <prefix>|str <key> <value>]");
