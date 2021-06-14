@@ -80,6 +80,7 @@ client.on('message', (msg) => {
 // Example: poll 3 pick your number 1-3
 async function doPoll(msg: Message, message: String) {
   let defEmojiList = [
+    '\u0030\u20E3',
     '\u0031\u20E3',
     '\u0032\u20E3',
     '\u0033\u20E3',
