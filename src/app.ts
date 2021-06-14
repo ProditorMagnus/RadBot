@@ -1,4 +1,4 @@
-import { Client, TextChannel } from 'discord.js';
+import { Client, Message, TextChannel } from 'discord.js';
 import { Config } from './Config';
 import { SiegeSchedule } from './SiegeSchedule';
 import { Utils } from './Utils';
@@ -51,6 +51,9 @@ client.on('message', (msg) => {
   if (message.startsWith("next")) {
     msg.channel.send("Next siege: " + Utils.displayDate(siegeSchedule.getNextSiegeMoments(new Date())[0]));
   }
+  if (message.startsWith("poll")) {
+    doPoll(msg, message);
+  }
   if (message.startsWith("set")) {
     const parts = message.split(" ");
     if (message.startsWith("set server")) {
@@ -73,6 +76,30 @@ client.on('message', (msg) => {
     msg.channel.send(JSON.stringify(config));
   }
 });
+
+// Example: poll 3 pick your number 1-3
+async function doPoll(msg: Message, message: String) {
+  let defEmojiList = [
+    '\u0031\u20E3',
+    '\u0032\u20E3',
+    '\u0033\u20E3',
+    '\u0034\u20E3',
+    '\u0035\u20E3',
+    '\u0036\u20E3',
+    '\u0037\u20E3',
+    '\u0038\u20E3',
+    '\u0039\u20E3',
+    '\uD83D\uDD1F'
+  ];
+  const parts = message.split(" ");
+  const optionCount = parseInt(parts[1]);
+  const pollMessage = parts.slice(2).join(" ");
+  const poll = await msg.channel.send(pollMessage);
+  for (let i = 0; i < optionCount; i++) {
+    const emote = defEmojiList[i];
+    poll.react(emote);
+  }
+}
 
 function sendPingMessage() {
   (client.channels.cache.get(config.outputChannel) as TextChannel).send("<@&" + config.pingRole + "> " + config.pingMessage);
