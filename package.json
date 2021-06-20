@@ -7,7 +7,7 @@
     "build": "tsc -p ./src --outDir ./build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node build/app.js",
-    "dev": "npm run build -- -w",
+    "dev": "npm run-script build && npm run-script start",
     "postinstall": "npm run build"
   },
   "keywords": [],

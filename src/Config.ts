@@ -4,6 +4,7 @@ export interface Config {
     prefix: string;
     debugChannel: string;
     outputChannel: string;
+    pollChannel: string;
     pingRole: string;
     adminUser: string;
     pingMessage: string;

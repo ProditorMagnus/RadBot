@@ -1,6 +1,7 @@
 import { Client, Message, TextChannel } from 'discord.js';
 import { Config } from './Config';
 import { SiegeSchedule } from './SiegeSchedule';
+import { PollController } from './PollController';
 import { Utils } from './Utils';
 require('dotenv').config();
 
@@ -9,7 +10,8 @@ const client = new Client({
 });
 const ws = {
   currentTimeout: undefined,
-  setNextSiegeAlert: undefined
+  setNextSiegeAlert: undefined,
+  setNextDraadorPoll: undefined
 }
 const config = {
   advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
@@ -17,12 +19,14 @@ const config = {
   prefix: process.env.PREFIX || "<",
   debugChannel: process.env.DEBUG_CHANNEL || "829794369888059395",
   outputChannel: process.env.OUTPUT_CHANNEL || "829794369888059395",
+  pollChannel: process.env.POLL_CHANNEL || "856267796504772649",
   pingRole: process.env.PING_ROLE || "829802122362224680",
   adminUser: process.env.ADMIN_USER || "175293761323008000",
   pingMessage: process.env.PING_MESSAGE || "Time to siege!",
   logLevel: process.env.LOG_LEVEL || "di",
 } as Config;
 const siegeSchedule = new SiegeSchedule(config);
+const pollController = new PollController(config);
 
 client.login(process.env.BOT_TOKEN);
 
@@ -36,6 +40,17 @@ client.on('ready', () => {
     }, timeToNextMoment)
   }
   ws.setNextSiegeAlert(new Date());
+  ws.setNextDraadorPoll = function () {
+    const nextWeekStart = new Date().setUTCHours(0, 0, 0, 0)
+      + ((7 - new Date().getUTCDay()) % 7 + 1) * Utils.hourMs * 24;
+    const timeToNextPoll = nextWeekStart
+      - new Date().getTime();
+    sendDebugMessage("Time to next poll: " + timeToNextPoll + " -> " + timeToNextPoll / Utils.hourMs + " hours");
+    setTimeout(function () {
+      pollController.doPoll(client.channels.cache.get(config.pollChannel) as TextChannel, "poll 6 How many draadors you found on the week " + new Date(nextWeekStart).toDateString() + " - " + new Date(nextWeekStart + 6 * 24 * Utils.hourMs).toDateString());
+    }, timeToNextPoll);
+  }
+  ws.setNextDraadorPoll();
 })
 
 client.on('message', (msg) => {
@@ -52,7 +67,7 @@ client.on('message', (msg) => {
     msg.channel.send("Next siege: " + Utils.displayDate(siegeSchedule.getNextSiegeMoments(new Date())[0]));
   }
   if (message.startsWith("poll")) {
-    doPoll(msg, message);
+    pollController.doPoll(msg.channel, message);
   }
   if (message.startsWith("set")) {
     const parts = message.split(" ");
@@ -76,31 +91,6 @@ client.on('message', (msg) => {
     msg.channel.send(JSON.stringify(config));
   }
 });
-
-// Example: poll 3 pick your number 1-3
-async function doPoll(msg: Message, message: String) {
-  let defEmojiList = [
-    '\u0030\u20E3',
-    '\u0031\u20E3',
-    '\u0032\u20E3',
-    '\u0033\u20E3',
-    '\u0034\u20E3',
-    '\u0035\u20E3',
-    '\u0036\u20E3',
-    '\u0037\u20E3',
-    '\u0038\u20E3',
-    '\u0039\u20E3',
-    '\uD83D\uDD1F'
-  ];
-  const parts = message.split(" ");
-  const optionCount = parseInt(parts[1]);
-  const pollMessage = parts.slice(2).join(" ");
-  const poll = await msg.channel.send(pollMessage);
-  for (let i = 0; i < optionCount; i++) {
-    const emote = defEmojiList[i];
-    poll.react(emote);
-  }
-}
 
 function sendPingMessage() {
   (client.channels.cache.get(config.outputChannel) as TextChannel).send("<@&" + config.pingRole + "> " + config.pingMessage);
