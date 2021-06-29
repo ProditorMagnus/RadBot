@@ -2,6 +2,7 @@ import { Client, Message, TextChannel } from 'discord.js';
 import { Config } from './Config';
 import { SiegeSchedule } from './SiegeSchedule';
 import { PollController } from './PollController';
+import { CommandHandler } from './CommandHandler';
 import { Utils } from './Utils';
 require('dotenv').config();
 
@@ -27,6 +28,7 @@ const config = {
 } as Config;
 const siegeSchedule = new SiegeSchedule(config);
 const pollController = new PollController(config);
+const commandHandler = new CommandHandler(config);
 
 client.login(process.env.BOT_TOKEN);
 
@@ -59,6 +61,9 @@ client.on('message', (msg) => {
     return;
   }
   let message = msg.content.slice(config.prefix.length);
+  if (commandHandler.handlePublicMessage(msg, message)) {
+    return;
+  }
   if (msg.author.id !== config.adminUser) {
     return;
   }
