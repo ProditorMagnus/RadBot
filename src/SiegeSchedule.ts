@@ -38,22 +38,22 @@ export class SiegeSchedule {
         return siegeMoments.map((d) => new Date(d));
     }
 
-    public calculateTimetoNextMoment(startingTime: Date, availableMoments: Date[]) {
-        let timeToNextMoment = Utils.dayMs;
+    public static calculateTimetoNextMoment(startingTime: Date, availableMoments: Date[]): number {
+        let timeToNextMoment = 7 * Utils.dayMs;
         availableMoments.forEach(moment => {
             if (moment > startingTime) { // TODO consider case when difference is less than advanceWarningTime
                 const d = new Date().getTime();
                 const timeToMoment = (-d + moment.getTime());
                 timeToNextMoment = Math.min(timeToMoment, timeToNextMoment)
-                console.log("OK moment " + Utils.displayDate(moment));
+                console.log("OK moment " + Utils.displayDate(moment), "timeToMoment", timeToMoment, "timeToNextMoment", timeToNextMoment);
             } else {
                 console.log("Unsuitable moment " + Utils.displayDate(moment) + " before " + Utils.displayDate(startingTime));
             }
         });
-        if (timeToNextMoment === Utils.dayMs) {
+        if (timeToNextMoment === 7 * Utils.dayMs) {
             console.log("Failed to find next moment!");
         }
-        return timeToNextMoment - this.config.advanceWarningTime;
+        return timeToNextMoment;
     }
 
 }

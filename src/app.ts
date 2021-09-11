@@ -34,7 +34,7 @@ client.login(process.env.BOT_TOKEN);
 
 client.on('ready', () => {
   ws.setNextSiegeAlert = function (startingTime: Date) {
-    const timeToNextMoment = siegeSchedule.calculateTimetoNextMoment(startingTime, siegeSchedule.getNextSiegeMoments(startingTime));
+    const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(startingTime, siegeSchedule.getNextSiegeMoments(startingTime)) - config.advanceWarningTime;
     sendDebugMessage("Hours to next alert: " + timeToNextMoment / Utils.hourMs);
     ws.currentTimeout = setTimeout(function () {
       sendPingMessage();
@@ -68,9 +68,7 @@ client.on('message', (msg) => {
     return;
   }
 
-  if (message.startsWith("next")) {
-    msg.channel.send("Next siege: " + Utils.displayDate(siegeSchedule.getNextSiegeMoments(new Date())[0]));
-  }
+
   if (message.startsWith("poll")) {
     pollController.doPoll(msg.channel, message);
   }
