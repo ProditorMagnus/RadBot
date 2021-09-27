@@ -80,9 +80,12 @@ class PingCommand implements BaseCommand {
         }
         const time = parseInt(timeWithoutUnit) * unit;
         const reason = match[2];
+        const emote = "⏱️";
         setTimeout(function () {
             msg.channel.send("<@" + msg.member.id + "> " + reason);
+            msg.reactions.cache.get(emote).users.remove();
         }, time);
+        msg.react(emote);
         console.log("CommandHandler", "Will ping in " + time);
     }
 };
