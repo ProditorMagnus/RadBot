@@ -112,3 +112,19 @@ function sendInfoMessage(message: string) {
     (client.channels.cache.get(config.outputChannel) as TextChannel).send(message);
   }
 }
+
+function shutdown(signal) {
+  return (err) => {
+    sendDebugMessage(`${ signal }...`);
+    if (err) sendDebugMessage(err.stack || err);
+    setTimeout(() => {
+      sendDebugMessage('...waited 5s, exiting.');
+      process.exit(err ? 1 : 0);
+    }, 5000).unref();
+  };
+}
+
+process
+  .on('SIGTERM', shutdown('SIGTERM'))
+  .on('SIGINT', shutdown('SIGINT'))
+  .on('uncaughtException', shutdown('uncaughtException'));
