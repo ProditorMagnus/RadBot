@@ -2,7 +2,7 @@ import { Client, Message, TextChannel } from 'discord.js';
 import { Config } from './Config';
 import { SiegeSchedule } from './SiegeSchedule';
 import { PollController } from './PollController';
-import { CommandHandler } from './CommandHandler';
+import { CommandHandler, NextLairCommand } from './CommandHandler';
 import { Utils } from './Utils';
 require('dotenv').config();
 
@@ -12,6 +12,7 @@ const client = new Client({
 const ws = {
   currentTimeout: undefined,
   setNextSiegeAlert: undefined,
+  setNextLairAlert: undefined,
   setNextDraadorPoll: undefined
 }
 const config = {
@@ -24,6 +25,12 @@ const config = {
   pingRole: process.env.PING_ROLE || "829802122362224680",
   adminUser: process.env.ADMIN_USER || "175293761323008000",
   pingMessage: process.env.PING_MESSAGE || "Time to siege!",
+  lair: {
+    enabled: !!process.env.ENABLE_LAIR_PING,
+    pingRole: process.env.LAIR_PING_ROLE || "903673094336573482",
+    outputChannel: process.env.LAIR_PING_CHANNEL || "872554300394586143",
+    pingMessage: process.env.LAIR_PING_MESSAGE || "Time for lair!",
+  },
   logLevel: process.env.LOG_LEVEL || "di",
 } as Config;
 const siegeSchedule = new SiegeSchedule(config);
@@ -35,13 +42,23 @@ client.login(process.env.BOT_TOKEN);
 client.on('ready', () => {
   ws.setNextSiegeAlert = function (startingTime: Date) {
     const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(startingTime, siegeSchedule.getNextSiegeMoments(startingTime)) - config.advanceWarningTime;
-    sendDebugMessage("Hours to next alert: " + timeToNextMoment / Utils.hourMs);
+    sendDebugMessage("Hours to next siege alert: " + timeToNextMoment / Utils.hourMs);
     ws.currentTimeout = setTimeout(function () {
       sendPingMessage();
       ws.setNextSiegeAlert(new Date(Math.max(new Date().getTime(), startingTime.getTime()) + Utils.hourMs));
     }, timeToNextMoment)
   }
   ws.setNextSiegeAlert(new Date());
+  if (config.lair.enabled) {
+    ws.setNextLairAlert = function () {
+      const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment() - config.advanceWarningTime;
+      sendDebugMessage("Hours to next lair alert: " + timeToNextMoment / Utils.hourMs);
+      setTimeout(function () {
+        sendLairPingMessage();
+      }, timeToNextMoment)
+    }
+    ws.setNextLairAlert();
+  }
   ws.setNextDraadorPoll = function () {
     const nextWeekStart = new Date().setUTCHours(0, 0, 0, 0)
       + ((7 - new Date().getUTCDay()) % 7 + 1) * Utils.hourMs * 24;
@@ -95,6 +112,10 @@ client.on('message', (msg) => {
   }
 });
 
+function sendLairPingMessage() {
+  (client.channels.cache.get(config.lair.outputChannel) as TextChannel).send("<@&" + config.lair.pingRole + "> " + config.lair.pingMessage);
+}
+
 function sendPingMessage() {
   (client.channels.cache.get(config.outputChannel) as TextChannel).send("<@&" + config.pingRole + "> " + config.pingMessage);
 }
@@ -115,7 +136,7 @@ function sendInfoMessage(message: string) {
 
 function shutdown(signal) {
   return (err) => {
-    sendDebugMessage(`${ signal }...`);
+    sendDebugMessage(`${signal}...`);
     if (err) sendDebugMessage(err.stack || err);
     setTimeout(() => {
       sendDebugMessage('...waited 5s, exiting.');

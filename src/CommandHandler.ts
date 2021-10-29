@@ -107,10 +107,17 @@ class NextSiegeCommand implements BaseCommand {
     }
 };
 
-class NextLairCommand implements BaseCommand {
+export class NextLairCommand implements BaseCommand {
     help = "Tells you when is next lair";
     args = new RegExp("");
     public action(msg: Message, message: String) {
+        const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment();
+        // wednesday 18gmt
+        // saturday 14gmt
+        msg.channel.send("Next lair starts in: " + timeToNextMoment / Utils.hourMs + " hours");
+    }
+
+    public static getTimeToNextLairMoment() {
         let lair1 = new Date();
         let lair2 = new Date();
         while (lair1.getUTCDay() != 3) {
@@ -124,8 +131,6 @@ class NextLairCommand implements BaseCommand {
         let moments = [lair1, lair2, new Date(lair1.getTime() + 7 * Utils.dayMs)];
 
         const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(new Date(), moments);
-        // wednesday 18gmt
-        // saturday 14gmt
-        msg.channel.send("Next lair starts in: " + timeToNextMoment / Utils.hourMs + " hours");
+        return timeToNextMoment;
     }
 };
