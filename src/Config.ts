@@ -6,15 +6,16 @@ export interface Config {
     outputChannel: string;
     pollChannel: string;
     pingRole: string;
-    lairPingRole: string;
     adminUser: string;
     pingMessage: string;
-    lairPingMessage: string;
     logLevel: string;
     lair: {
         enabled: boolean;
         pingMessage: string;
         pingRole: string;
+        campMessage: string;
+        campPingRole: string;
         outputChannel: string;
+        advanceWarningTime: number;
     }
 }

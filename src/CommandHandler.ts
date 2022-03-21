@@ -81,11 +81,14 @@ class PingCommand implements BaseCommand {
         const time = parseInt(timeWithoutUnit) * unit;
         const reason = match[2];
         const emote = "⏱️";
+        msg.react(emote);
         setTimeout(function () {
             msg.channel.send("<@" + msg.member.id + "> " + reason);
-            msg.reactions.cache.get(emote).users.remove();
+            const reactions = msg.reactions.cache.get(emote);
+            if (reactions) {
+                reactions.users.remove();
+            }
         }, time);
-        msg.react(emote);
         console.log("CommandHandler", "Will ping in " + time);
     }
 };
@@ -128,6 +131,23 @@ export class NextLairCommand implements BaseCommand {
         }
         lair1.setUTCHours(18, 0, 0, 0);
         lair2.setUTCHours(14, 0, 0, 0);
+        let moments = [lair1, lair2, new Date(lair1.getTime() + 7 * Utils.dayMs)];
+
+        const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(new Date(), moments);
+        return timeToNextMoment;
+    }
+
+    public static getTimeToNextLairCampMoment(){
+        let lair1 = new Date();
+        let lair2 = new Date();
+        while (lair1.getUTCDay() != 2) {
+            lair1 = new Date(lair1.getTime() + Utils.dayMs);
+        }
+        while (lair2.getUTCDay() != 5) {
+            lair2 = new Date(lair2.getTime() + Utils.dayMs);
+        }
+        lair1.setUTCHours(23, 0, 0, 0);
+        lair2.setUTCHours(23, 0, 0, 0);
         let moments = [lair1, lair2, new Date(lair1.getTime() + 7 * Utils.dayMs)];
 
         const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(new Date(), moments);

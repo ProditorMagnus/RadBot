@@ -27,9 +27,12 @@ const config = {
   pingMessage: process.env.PING_MESSAGE || "Time to siege!",
   lair: {
     enabled: !!process.env.ENABLE_LAIR_PING,
-    pingRole: process.env.LAIR_PING_ROLE || "903673094336573482",
-    outputChannel: process.env.LAIR_PING_CHANNEL || "872554300394586143",
     pingMessage: process.env.LAIR_PING_MESSAGE || "Time for lair!",
+    pingRole: process.env.LAIR_PING_ROLE || "903673094336573482",
+    campMessage: process.env.LAIR_CAMP_PING_MESSAGE || "Heroes to camp!",
+    campPingRole: process.env.LAIR_CAMP_PING_ROLE || "955588022282358865",
+    outputChannel: process.env.LAIR_PING_CHANNEL || "872554300394586143",
+    advanceWarningTime: (parseInt(process.env.LAIR_ADVANCE_WARNING_TIME) || 5) * Utils.minuteMs,
   },
   logLevel: process.env.LOG_LEVEL || "di",
 } as Config;
@@ -51,11 +54,16 @@ client.on('ready', () => {
   ws.setNextSiegeAlert(new Date());
   if (config.lair.enabled) {
     ws.setNextLairAlert = function () {
-      const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment() - config.advanceWarningTime;
+      const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment() - config.lair.advanceWarningTime;
       sendDebugMessage("Hours to next lair alert: " + timeToNextMoment / Utils.hourMs);
       setTimeout(function () {
         sendLairPingMessage();
-      }, timeToNextMoment)
+      }, timeToNextMoment);
+
+      const timeToNextCampMoment = NextLairCommand.getTimeToNextLairCampMoment() - config.lair.advanceWarningTime;
+      setTimeout(function () {
+        (client.channels.cache.get(config.lair.outputChannel) as TextChannel).send("<@&" + config.lair.campPingRole + "> " + config.lair.campMessage);
+      }, timeToNextCampMoment);
     }
     ws.setNextLairAlert();
   }
@@ -130,7 +138,7 @@ function sendDebugMessage(message: string) {
 function sendInfoMessage(message: string) {
   console.log("INFO", message);
   if (config.logLevel.indexOf("i") >= 0) {
-    (client.channels.cache.get(config.outputChannel) as TextChannel).send(message);
+    (client.channels.cache.get(config.debugChannel) as TextChannel).send(message);
   }
 }
 
@@ -145,7 +153,13 @@ function shutdown(signal) {
   };
 }
 
+function reportError(signal) {
+  return (err) => {
+    if (err) sendInfoMessage(err.stack || err);
+  };
+}
+
 process
   .on('SIGTERM', shutdown('SIGTERM'))
   .on('SIGINT', shutdown('SIGINT'))
-  .on('uncaughtException', shutdown('uncaughtException'));
+  .on('uncaughtException', reportError('uncaughtException'));
