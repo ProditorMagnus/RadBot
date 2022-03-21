@@ -84,6 +84,8 @@ class PingCommand implements BaseCommand {
         msg.react(emote);
         setTimeout(function () {
             msg.channel.send("<@" + msg.member.id + "> " + reason);
+            if (msg.deleted) return;
+
             const reactions = msg.reactions.cache.get(emote);
             if (reactions) {
                 reactions.users.remove();
@@ -137,7 +139,7 @@ export class NextLairCommand implements BaseCommand {
         return timeToNextMoment;
     }
 
-    public static getTimeToNextLairCampMoment(){
+    public static getTimeToNextLairCampMoment() {
         let lair1 = new Date();
         let lair2 = new Date();
         while (lair1.getUTCDay() != 2) {

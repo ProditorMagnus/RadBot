@@ -155,7 +155,7 @@ function shutdown(signal) {
 
 function reportError(signal) {
   return (err) => {
-    if (err) sendInfoMessage(err.stack || err);
+    if (err) sendInfoMessage(err);
   };
 }
 
