@@ -1,5 +1,5 @@
 import { Channel, DMChannel, Message, NewsChannel, TextChannel } from "discord.js";
-import { Config } from "./Config";
+import { Config, SiegeConfig } from "./Config";
 import { SiegeSchedule } from "./SiegeSchedule";
 import { Utils } from "./Utils";
 
@@ -12,7 +12,10 @@ export class CommandHandler {
         this.commands = {
             "help": new HelpCommand(this),
             "ping": new PingCommand(),
-            "siege": new NextSiegeCommand(this.config),
+            "siege": new NextSiegeCommand(this.config.siege[0]),
+            "siege1": new NextSiegeCommand(this.config.siege[1]),
+            "siege2": new NextSiegeCommand(this.config.siege[2]),
+            "shield": new NextShieldCommand(),
             "lair": new NextLairCommand()
         }
     }
@@ -96,9 +99,9 @@ class PingCommand implements BaseCommand {
 };
 
 class NextSiegeCommand implements BaseCommand {
-    config: Config;
+    config: SiegeConfig;
     siegeSchedule: SiegeSchedule;
-    constructor(config: Config) {
+    constructor(config: SiegeConfig) {
         this.config = config;
         this.siegeSchedule = new SiegeSchedule(config);
     }
@@ -151,6 +154,32 @@ export class NextLairCommand implements BaseCommand {
         lair1.setUTCHours(23, 0, 0, 0);
         lair2.setUTCHours(23, 0, 0, 0);
         let moments = [lair1, lair2, new Date(lair1.getTime() + 7 * Utils.dayMs)];
+
+        const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(new Date(), moments);
+        return timeToNextMoment;
+    }
+};
+
+export class NextShieldCommand implements BaseCommand {
+    help = "Tells you when is next weekend league shield time";
+    args = new RegExp("");
+    public action(msg: Message, message: String) {
+        const timeToNextMoment = NextShieldCommand.getTimeToNextShieldMoment();
+        msg.channel.send("Next shield should be used in: " + timeToNextMoment / Utils.hourMs + " hours");
+    }
+
+    public static getTimeToNextShieldMoment() {
+        let saturday = new Date();
+        let sunday = new Date();
+        while (saturday.getUTCDay() != 6) {
+            saturday = new Date(saturday.getTime() + Utils.dayMs);
+        }
+        while (sunday.getUTCDay() % 7 != 0) {
+            sunday = new Date(sunday.getTime() + Utils.dayMs);
+        }
+        saturday.setUTCHours(20, 0, 0, 0);
+        sunday.setUTCHours(20, 0, 0, 0);
+        let moments = [saturday, sunday, new Date(saturday.getTime() + 7 * Utils.dayMs)];
 
         const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(new Date(), moments);
         return timeToNextMoment;

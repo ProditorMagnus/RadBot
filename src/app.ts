@@ -1,8 +1,8 @@
-import { Client, Message, TextChannel } from 'discord.js';
-import { Config } from './Config';
+import { Client, TextChannel } from 'discord.js';
+import { Config, PingConfig, SiegeConfig } from './Config';
 import { SiegeSchedule } from './SiegeSchedule';
 import { PollController } from './PollController';
-import { CommandHandler, NextLairCommand } from './CommandHandler';
+import { CommandHandler, NextLairCommand, NextShieldCommand } from './CommandHandler';
 import { Utils } from './Utils';
 require('dotenv').config();
 
@@ -10,48 +10,70 @@ const client = new Client({
   partials: ['MESSAGE', 'REACTION', 'CHANNEL'],
 });
 const ws = {
-  currentTimeout: undefined,
-  setNextSiegeAlert: undefined,
   setNextLairAlert: undefined,
   setNextDraadorPoll: undefined
 }
 const config = {
-  advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
-  serverOffset: parseInt(process.env.SERVER_OFFSET) || 3,
   prefix: process.env.PREFIX || "<",
   debugChannel: process.env.DEBUG_CHANNEL || "829794369888059395",
-  outputChannel: process.env.OUTPUT_CHANNEL || "829794369888059395",
   pollChannel: process.env.POLL_CHANNEL || "856267796504772649",
-  pingRole: process.env.PING_ROLE || "829802122362224680",
   adminUser: process.env.ADMIN_USER || "175293761323008000",
-  pingMessage: process.env.PING_MESSAGE || "Time to siege!",
+  logLevel: process.env.LOG_LEVEL || "di",
+
   lair: {
     enabled: !!process.env.ENABLE_LAIR_PING,
-    pingMessage: process.env.LAIR_PING_MESSAGE || "Time for lair!",
+    advanceWarningTime: (parseInt(process.env.LAIR_ADVANCE_WARNING_TIME) || 5) * Utils.minuteMs,
     pingRole: process.env.LAIR_PING_ROLE || "903673094336573482",
+    pingMessage: process.env.LAIR_PING_MESSAGE || "Time for lair!",
     campMessage: process.env.LAIR_CAMP_PING_MESSAGE || "Heroes to camp!",
     campPingRole: process.env.LAIR_CAMP_PING_ROLE || "955588022282358865",
     outputChannel: process.env.LAIR_PING_CHANNEL || "872554300394586143",
-    advanceWarningTime: (parseInt(process.env.LAIR_ADVANCE_WARNING_TIME) || 5) * Utils.minuteMs,
   },
-  logLevel: process.env.LOG_LEVEL || "di",
+
+  siege: [
+    {
+      serverOffset: 3,
+      enabled: true,
+      advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
+      pingRole: process.env.PING_ROLE || "830168692373192745",
+      pingMessage: process.env.PING_MESSAGE || "Time to siege!",
+      outputChannel: process.env.OUTPUT_CHANNEL || "717578823255720036",
+    },
+    {
+      serverOffset: 0,
+      enabled: true,
+      advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
+      pingRole: "830168692373192745",
+      pingMessage: "Time to siege in s1!",
+      outputChannel: "983187637802262568",
+    },
+    {
+      serverOffset: 1,
+      enabled: true,
+      advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
+      pingRole: "830168692373192745",
+      pingMessage: "Time to siege in s2!",
+      outputChannel: "983187637802262568",
+    },
+  ],
+
+  shield: {
+    enabled: true,
+    advanceWarningTime: 15 * Utils.minuteMs,
+    pingRole: "997161085075193856",
+    pingMessage: "League!",
+    outputChannel: "776411815499792384",
+  }
+
 } as Config;
-const siegeSchedule = new SiegeSchedule(config);
 const pollController = new PollController(config);
 const commandHandler = new CommandHandler(config);
 
 client.login(process.env.BOT_TOKEN);
 
 client.on('ready', () => {
-  ws.setNextSiegeAlert = function (startingTime: Date) {
-    const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(startingTime, siegeSchedule.getNextSiegeMoments(startingTime)) - config.advanceWarningTime;
-    sendDebugMessage("Hours to next siege alert: " + timeToNextMoment / Utils.hourMs);
-    ws.currentTimeout = setTimeout(function () {
-      sendPingMessage();
-      ws.setNextSiegeAlert(new Date(Math.max(new Date().getTime(), startingTime.getTime()) + Utils.hourMs));
-    }, timeToNextMoment)
-  }
-  ws.setNextSiegeAlert(new Date());
+  setSiegeAlerts();
+  setShieldAlert(config.shield)
   if (config.lair.enabled) {
     ws.setNextLairAlert = function () {
       const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment() - config.lair.advanceWarningTime;
@@ -78,6 +100,7 @@ client.on('ready', () => {
     }, timeToNextPoll);
   }
   ws.setNextDraadorPoll();
+  sendDebugMessage("Bot is online");
 })
 
 client.on('message', (msg) => {
@@ -89,43 +112,58 @@ client.on('message', (msg) => {
   if (commandHandler.handlePublicMessage(msg, message)) {
     return;
   }
+  if (message.startsWith("poll")) {
+    pollController.doPoll(msg.channel, message);
+  }
   if (msg.author.id !== config.adminUser) {
     return;
   }
 
-
-  if (message.startsWith("poll")) {
-    pollController.doPoll(msg.channel, message);
-  }
   if (message.startsWith("set")) {
     const parts = message.split(" ");
-    if (message.startsWith("set server")) {
-      config.serverOffset = parseInt(parts[2]) - 1 || 0;
-      clearTimeout(ws.currentTimeout);
-      ws.setNextSiegeAlert(new Date());
-    } else if (message.startsWith("set warning")) {
-      config.advanceWarningTime = parseInt(parts[2]) * Utils.minuteMs || 0;
-      clearTimeout(ws.currentTimeout);
-      ws.setNextSiegeAlert(new Date());
-    } else if (message.startsWith("set prefix")) {
+    if (message.startsWith("set prefix")) {
       config.prefix = (parts[2]) || "";
     } else if (message.startsWith("set str ")) {
       // consider accepting #channel and @role inputs
       config[parts[2]] = parts.slice(3).join(" ");
     } else {
-      msg.channel.send("set [server <serverNumber>|warning <minutes>|prefix <prefix>|str <key> <value>]");
+      msg.channel.send("set prefix <prefix>|str <key> <value>]");
     }
 
     msg.channel.send(JSON.stringify(config));
   }
 });
 
+function setShieldAlert(shieldConfig: PingConfig) {
+  if (!shieldConfig.enabled) return;
+  const timeToNextMoment = NextShieldCommand.getTimeToNextShieldMoment();
+  setTimeout(function () {
+    sendPingMessage(shieldConfig);
+    setShieldAlert(shieldConfig);
+  }, timeToNextMoment - shieldConfig.advanceWarningTime);
+}
+
+function setSiegeAlert(siege: SiegeConfig) {
+  if (!siege.enabled) return;
+  const schedule = new SiegeSchedule(siege);
+  const startingTime = new Date(new Date().getTime() + Utils.minuteMs + siege.advanceWarningTime);
+  const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(startingTime, schedule.getNextSiegeMoments(startingTime));
+  setTimeout(function () {
+    sendPingMessage(siege);
+    setSiegeAlert(siege);
+  }, timeToNextMoment - siege.advanceWarningTime);
+}
+
+function setSiegeAlerts() {
+  config.siege.forEach(setSiegeAlert);
+}
+
 function sendLairPingMessage() {
   (client.channels.cache.get(config.lair.outputChannel) as TextChannel).send("<@&" + config.lair.pingRole + "> " + config.lair.pingMessage);
 }
 
-function sendPingMessage() {
-  (client.channels.cache.get(config.outputChannel) as TextChannel).send("<@&" + config.pingRole + "> " + config.pingMessage);
+function sendPingMessage(pingConfig: PingConfig) {
+  (client.channels.cache.get(pingConfig.outputChannel) as TextChannel).send("<@&" + pingConfig.pingRole + "> " + pingConfig.pingMessage);
 }
 
 function sendDebugMessage(message: string) {

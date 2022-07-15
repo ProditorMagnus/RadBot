@@ -1,10 +1,10 @@
-import { Config } from "./Config";
+import { Config, SiegeConfig } from "./Config";
 import { Utils } from "./Utils";
 
 export class SiegeSchedule {
-    private config: Config;
+    private config: SiegeConfig;
 
-    constructor(config: Config) {
+    constructor(config: SiegeConfig) {
         this.config = config;
     }
 
@@ -41,7 +41,7 @@ export class SiegeSchedule {
     public static calculateTimetoNextMoment(startingTime: Date, availableMoments: Date[]): number {
         let timeToNextMoment = 7 * Utils.dayMs;
         availableMoments.forEach(moment => {
-            if (moment > startingTime) { // TODO consider case when difference is less than advanceWarningTime
+            if (moment > startingTime) {
                 const d = new Date().getTime();
                 const timeToMoment = (-d + moment.getTime());
                 timeToNextMoment = Math.min(timeToMoment, timeToNextMoment)
