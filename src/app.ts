@@ -60,7 +60,7 @@ const config = {
   shield: {
     enabled: true,
     advanceWarningTime: 15 * Utils.minuteMs,
-    pingRole: "997161085075193856",
+    pingRole: "965703720321032283",
     pingMessage: "League!",
     outputChannel: "776411815499792384",
   }
@@ -139,7 +139,6 @@ function setShieldAlert(shieldConfig: PingConfig) {
   const timeToNextMoment = NextShieldCommand.getTimeToNextShieldMoment();
   setTimeout(function () {
     sendPingMessage(shieldConfig);
-    setShieldAlert(shieldConfig);
   }, timeToNextMoment - shieldConfig.advanceWarningTime);
 }
 
