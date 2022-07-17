@@ -1,5 +1,5 @@
 import { Client, TextChannel } from 'discord.js';
-import { Config, PingConfig, SiegeConfig } from './Config';
+import { Config, PingConfig, ShieldConfig, SiegeConfig } from './Config';
 import { SiegeSchedule } from './SiegeSchedule';
 import { PollController } from './PollController';
 import { CommandHandler, NextLairCommand, NextShieldCommand } from './CommandHandler';
@@ -59,10 +59,17 @@ const config = {
 
   shield: {
     enabled: true,
-    advanceWarningTime: 15 * Utils.minuteMs,
+    advanceWarningTime: 10 * Utils.minuteMs,
     pingRole: "965703720321032283",
-    pingMessage: "League!",
+    pingMessage: "Prepare for league!",
     outputChannel: "776411815499792384",
+    lastMomentWarning: {
+      enabled: true,
+      advanceWarningTime: 10 * Utils.secondMs,
+      pingRole: "965703720321032283",
+      pingMessage: "Shield time incoming soon!",
+      outputChannel: "776411815499792384",
+    }
   }
 
 } as Config;
@@ -126,20 +133,32 @@ client.on('message', (msg) => {
     } else if (message.startsWith("set str ")) {
       // consider accepting #channel and @role inputs
       config[parts[2]] = parts.slice(3).join(" ");
+    } else if (message.startsWith("set int ")) {
+      config[parts[2]] = parseInt(parts.slice(3).join(" "));
+    } else if (message.startsWith("set float ")) {
+      config[parts[2]] = parseFloat(parts.slice(3).join(" "));
+    } else if (message.startsWith("set eval ")) {
+      eval("config." + parts.slice(3).join(" "))
     } else {
-      msg.channel.send("set prefix <prefix>|str <key> <value>]");
+      msg.channel.send("set prefix <prefix>|str/int/float <key> <value>]|eval ");
     }
 
     msg.channel.send(JSON.stringify(config));
   }
 });
 
-function setShieldAlert(shieldConfig: PingConfig) {
-  if (!shieldConfig.enabled) return;
+function setShieldAlert(shieldConfig: ShieldConfig) {
   const timeToNextMoment = NextShieldCommand.getTimeToNextShieldMoment();
-  setTimeout(function () {
-    sendPingMessage(shieldConfig);
-  }, timeToNextMoment - shieldConfig.advanceWarningTime);
+  if (shieldConfig.enabled && timeToNextMoment - shieldConfig.advanceWarningTime > 0) {
+    setTimeout(function () {
+      sendPingMessage(shieldConfig);
+    }, timeToNextMoment - shieldConfig.advanceWarningTime);
+  }
+  if (shieldConfig.lastMomentWarning.enabled && timeToNextMoment - shieldConfig.lastMomentWarning.advanceWarningTime > 0) {
+    setTimeout(function () {
+      sendPingMessage(shieldConfig.lastMomentWarning);
+    }, timeToNextMoment - shieldConfig.lastMomentWarning.advanceWarningTime);
+  }
 }
 
 function setSiegeAlert(siege: SiegeConfig) {
