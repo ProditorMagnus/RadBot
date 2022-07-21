@@ -1,4 +1,4 @@
-import { Client, TextChannel } from 'discord.js';
+import { Client, Message, TextChannel } from 'discord.js';
 import { Config, PingConfig, ShieldConfig, SiegeConfig } from './Config';
 import { SiegeSchedule } from './SiegeSchedule';
 import { PollController } from './PollController';
@@ -38,6 +38,10 @@ const config = {
       pingRole: process.env.PING_ROLE || "830168692373192745",
       pingMessage: process.env.PING_MESSAGE || "Time to siege!",
       outputChannel: process.env.OUTPUT_CHANNEL || "717578823255720036",
+      cleanConfig: {
+        enabled: true,
+        delayMs: Utils.hourMs,
+      },
     },
     {
       serverOffset: 0,
@@ -46,6 +50,10 @@ const config = {
       pingRole: "830168692373192745",
       pingMessage: "Time to siege in s1!",
       outputChannel: "983187637802262568",
+      cleanConfig: {
+        enabled: true,
+        delayMs: Utils.hourMs,
+      },
     },
     {
       serverOffset: 1,
@@ -54,6 +62,10 @@ const config = {
       pingRole: "830168692373192745",
       pingMessage: "Time to siege in s2!",
       outputChannel: "983187637802262568",
+      cleanConfig: {
+        enabled: true,
+        delayMs: Utils.hourMs,
+      },
     },
   ],
 
@@ -138,7 +150,7 @@ client.on('message', (msg) => {
     } else if (message.startsWith("set float ")) {
       config[parts[2]] = parseFloat(parts.slice(3).join(" "));
     } else if (message.startsWith("set eval ")) {
-      eval("config." + parts.slice(3).join(" "))
+      eval("config." + parts.slice(2).join(" "))
     } else {
       msg.channel.send("set prefix <prefix>|str/int/float <key> <value>]|eval ");
     }
@@ -167,7 +179,14 @@ function setSiegeAlert(siege: SiegeConfig) {
   const startingTime = new Date(new Date().getTime() + Utils.minuteMs + siege.advanceWarningTime);
   const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(startingTime, schedule.getNextSiegeMoments(startingTime));
   setTimeout(function () {
-    sendPingMessage(siege);
+    let promise: Promise<Message> = sendPingMessage(siege);
+    if (siege.cleanConfig.enabled) {
+      promise.then(msg => {
+        setTimeout(() => msg.delete()
+          .catch(e => sendDebugMessage(e.message)),
+          siege.cleanConfig.delayMs);
+      }).catch(e => sendDebugMessage(e.message));
+    }
     setSiegeAlert(siege);
   }, timeToNextMoment - siege.advanceWarningTime);
 }
@@ -180,8 +199,8 @@ function sendLairPingMessage() {
   (client.channels.cache.get(config.lair.outputChannel) as TextChannel).send("<@&" + config.lair.pingRole + "> " + config.lair.pingMessage);
 }
 
-function sendPingMessage(pingConfig: PingConfig) {
-  (client.channels.cache.get(pingConfig.outputChannel) as TextChannel).send("<@&" + pingConfig.pingRole + "> " + pingConfig.pingMessage);
+function sendPingMessage(pingConfig: PingConfig): Promise<Message> {
+  return (client.channels.cache.get(pingConfig.outputChannel) as TextChannel).send("<@&" + pingConfig.pingRole + "> " + pingConfig.pingMessage)
 }
 
 function sendDebugMessage(message: string) {

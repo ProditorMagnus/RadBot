@@ -13,6 +13,12 @@ export interface Config {
 
 export interface SiegeConfig extends PingConfig {
     serverOffset: number;
+    cleanConfig: CleanConfig;
+}
+
+export interface CleanConfig {
+    enabled: boolean;
+    delayMs: number
 }
 
 export interface LairConfig extends PingConfig {
