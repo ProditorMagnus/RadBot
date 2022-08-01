@@ -6,7 +6,7 @@ import { CommandHandler, NextLairCommand, NextShieldCommand } from './CommandHan
 import { Utils } from './Utils';
 require('dotenv').config();
 
-const client = new Client({
+export const client = new Client({
   partials: ['MESSAGE', 'REACTION', 'CHANNEL'],
 });
 const ws = {
@@ -18,16 +18,31 @@ const config = {
   debugChannel: process.env.DEBUG_CHANNEL || "829794369888059395",
   pollChannel: process.env.POLL_CHANNEL || "856267796504772649",
   adminUser: process.env.ADMIN_USER || "175293761323008000",
-  logLevel: process.env.LOG_LEVEL || "di",
 
   lair: {
-    enabled: !!process.env.ENABLE_LAIR_PING,
-    advanceWarningTime: (parseInt(process.env.LAIR_ADVANCE_WARNING_TIME) || 5) * Utils.minuteMs,
-    pingRole: process.env.LAIR_PING_ROLE || "903673094336573482",
-    pingMessage: process.env.LAIR_PING_MESSAGE || "Time for lair!",
-    campMessage: process.env.LAIR_CAMP_PING_MESSAGE || "Heroes to camp!",
-    campPingRole: process.env.LAIR_CAMP_PING_ROLE || "955588022282358865",
-    outputChannel: process.env.LAIR_PING_CHANNEL || "872554300394586143",
+    fight: {
+      enabled: !!process.env.ENABLE_LAIR_PING,
+      advanceWarningTime: (parseInt(process.env.LAIR_ADVANCE_WARNING_TIME) || 5) * Utils.minuteMs,
+      pingRole: process.env.LAIR_PING_ROLE || "903673094336573482",
+      pingMessage: process.env.LAIR_PING_MESSAGE || "Time for lair!",
+      outputChannel: process.env.LAIR_PING_CHANNEL || "872554300394586143",
+      cleanConfig: {
+        enabled: true,
+        delayMs: Utils.hourMs,
+      },
+    },
+
+    camp: {
+      enabled: !!process.env.ENABLE_LAIR_PING,
+      advanceWarningTime: (parseInt(process.env.LAIR_ADVANCE_WARNING_TIME) || 5) * Utils.minuteMs,
+      pingMessage: process.env.LAIR_CAMP_PING_MESSAGE || "Heroes to camp!",
+      pingRole: process.env.LAIR_CAMP_PING_ROLE || "955588022282358865",
+      outputChannel: process.env.LAIR_PING_CHANNEL || "872554300394586143",
+      cleanConfig: {
+        enabled: true,
+        delayMs: Utils.hourMs,
+      },
+    }
   },
 
   siege: [
@@ -75,13 +90,27 @@ const config = {
     pingRole: "965703720321032283",
     pingMessage: "Prepare for league!",
     outputChannel: "776411815499792384",
+    cleanConfig: {
+      enabled: true,
+      delayMs: 10 * Utils.minuteMs,
+    },
     lastMomentWarning: {
       enabled: true,
       advanceWarningTime: 10 * Utils.secondMs,
       pingRole: "965703720321032283",
       pingMessage: "Shield time incoming soon!",
       outputChannel: "776411815499792384",
+      cleanConfig: {
+        enabled: true,
+        delayMs: 10 * Utils.minuteMs,
+      },
     }
+  },
+
+  db: {
+    enabled: true,
+    guild: "829794369888059392",
+    channel: "892148021758935111"
   }
 
 } as Config;
@@ -93,17 +122,17 @@ client.login(process.env.BOT_TOKEN);
 client.on('ready', () => {
   setSiegeAlerts();
   setShieldAlert(config.shield)
-  if (config.lair.enabled) {
+  if (config.lair.fight.enabled) {
     ws.setNextLairAlert = function () {
-      const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment() - config.lair.advanceWarningTime;
-      sendDebugMessage("Hours to next lair alert: " + timeToNextMoment / Utils.hourMs);
+      const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment() - config.lair.fight.advanceWarningTime;
       setTimeout(function () {
-        sendLairPingMessage();
+        sendPingMessage(config.lair.fight)
       }, timeToNextMoment);
-
-      const timeToNextCampMoment = NextLairCommand.getTimeToNextLairCampMoment() - config.lair.advanceWarningTime;
+    }
+    if (config.lair.camp.enabled) {
+      const timeToNextCampMoment = NextLairCommand.getTimeToNextLairCampMoment() - config.lair.camp.advanceWarningTime;
       setTimeout(function () {
-        (client.channels.cache.get(config.lair.outputChannel) as TextChannel).send("<@&" + config.lair.campPingRole + "> " + config.lair.campMessage);
+        sendPingMessage(config.lair.camp);
       }, timeToNextCampMoment);
     }
     ws.setNextLairAlert();
@@ -113,7 +142,6 @@ client.on('ready', () => {
       + ((7 - new Date().getUTCDay()) % 7 + 1) * Utils.hourMs * 24;
     const timeToNextPoll = nextWeekStart
       - new Date().getTime();
-    sendDebugMessage("Time to next poll: " + timeToNextPoll + " -> " + timeToNextPoll / Utils.hourMs + " hours");
     setTimeout(function () {
       pollController.doPoll(client.channels.cache.get(config.pollChannel) as TextChannel, "poll 6 How many draadors you found on the week " + new Date(nextWeekStart).toDateString() + " - " + new Date(nextWeekStart + 6 * 24 * Utils.hourMs).toDateString());
     }, timeToNextPoll);
@@ -179,14 +207,7 @@ function setSiegeAlert(siege: SiegeConfig) {
   const startingTime = new Date(new Date().getTime() + Utils.minuteMs + siege.advanceWarningTime);
   const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(startingTime, schedule.getNextSiegeMoments(startingTime));
   setTimeout(function () {
-    let promise: Promise<Message> = sendPingMessage(siege);
-    if (siege.cleanConfig.enabled) {
-      promise.then(msg => {
-        setTimeout(() => msg.delete()
-          .catch(e => sendDebugMessage(e.message)),
-          siege.cleanConfig.delayMs);
-      }).catch(e => sendDebugMessage(e.message));
-    }
+    sendPingMessage(siege);
     setSiegeAlert(siege);
   }, timeToNextMoment - siege.advanceWarningTime);
 }
@@ -195,26 +216,21 @@ function setSiegeAlerts() {
   config.siege.forEach(setSiegeAlert);
 }
 
-function sendLairPingMessage() {
-  (client.channels.cache.get(config.lair.outputChannel) as TextChannel).send("<@&" + config.lair.pingRole + "> " + config.lair.pingMessage);
-}
-
-function sendPingMessage(pingConfig: PingConfig): Promise<Message> {
-  return (client.channels.cache.get(pingConfig.outputChannel) as TextChannel).send("<@&" + pingConfig.pingRole + "> " + pingConfig.pingMessage)
+function sendPingMessage(pingConfig: PingConfig) {
+  if (!pingConfig.enabled) return;
+  let promise: Promise<Message> = (client.channels.cache.get(pingConfig.outputChannel) as TextChannel).send("<@&" + pingConfig.pingRole + "> " + pingConfig.pingMessage);
+  if (pingConfig.cleanConfig && pingConfig.cleanConfig.enabled) {
+    promise.then(msg => {
+      setTimeout(() => msg.delete()
+        .catch(e => sendDebugMessage(e.message + " when deleting ping message")),
+        pingConfig.cleanConfig.delayMs);
+    }).catch(e => sendDebugMessage(e.message + " when sending ping message"));
+  }
 }
 
 function sendDebugMessage(message: string) {
   console.log("DEBUG", message);
-  if (config.logLevel.indexOf("d") >= 0) {
-    (client.channels.cache.get(config.debugChannel) as TextChannel).send(message);
-  }
-}
-
-function sendInfoMessage(message: string) {
-  console.log("INFO", message);
-  if (config.logLevel.indexOf("i") >= 0) {
-    (client.channels.cache.get(config.debugChannel) as TextChannel).send(message);
-  }
+  (client.channels.cache.get(config.debugChannel) as TextChannel).send(message);
 }
 
 function shutdown(signal) {
@@ -230,7 +246,7 @@ function shutdown(signal) {
 
 function reportError(signal) {
   return (err) => {
-    if (err) sendInfoMessage(err);
+    if (err) sendDebugMessage(err);
   };
 }
 

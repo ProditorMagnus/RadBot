@@ -5,15 +5,14 @@ export interface Config {
 
     adminUser: string;
 
-    logLevel: string;
     lair: LairConfig;
     siege: SiegeConfig[];
     shield: ShieldConfig;
+    db: DatabaseConfig;
 }
 
 export interface SiegeConfig extends PingConfig {
     serverOffset: number;
-    cleanConfig: CleanConfig;
 }
 
 export interface CleanConfig {
@@ -21,9 +20,9 @@ export interface CleanConfig {
     delayMs: number
 }
 
-export interface LairConfig extends PingConfig {
-    campMessage: string;
-    campPingRole: string;
+export interface LairConfig {
+    fight: PingConfig;
+    camp: PingConfig;
 }
 
 export interface ShieldConfig extends PingConfig {
@@ -36,4 +35,11 @@ export interface PingConfig {
     pingRole: string;
     pingMessage: string;
     outputChannel: string;
+    cleanConfig: CleanConfig;
+}
+
+export interface DatabaseConfig {
+    enabled: boolean;
+    guild: string;
+    channel: string;
 }

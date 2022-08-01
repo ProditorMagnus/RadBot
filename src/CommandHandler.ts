@@ -1,5 +1,6 @@
 import { Channel, DMChannel, Message, NewsChannel, TextChannel } from "discord.js";
-import { Config, SiegeConfig } from "./Config";
+import { client } from "./app";
+import { Config, DatabaseConfig, SiegeConfig } from "./Config";
 import { SiegeSchedule } from "./SiegeSchedule";
 import { Utils } from "./Utils";
 
@@ -16,15 +17,21 @@ export class CommandHandler {
             "siege1": new NextSiegeCommand(this.config.siege[1]),
             "siege2": new NextSiegeCommand(this.config.siege[2]),
             "shield": new NextShieldCommand(),
-            "lair": new NextLairCommand()
+            "lair": new NextLairCommand(),
+            "db": new DatabaseCommand(this.config.db),
         }
     }
 
     public handlePublicMessage(msg: Message, message: String): boolean {
         try {
             const command = message.split(" ")[0];
-            if (this.commands[command]) {
-                this.commands[command].action(msg, message);
+            let handler = this.commands[command];
+            if (handler) {
+                if (!handler.adminOnly || msg.author.id === this.config.adminUser) {
+                    handler.action(msg, message);
+                } else {
+                    msg.reply("You are not allowed to do this");
+                }
                 return true;
             }
         } catch (error) {
@@ -36,6 +43,7 @@ export class CommandHandler {
 }
 
 interface BaseCommand {
+    adminOnly: Boolean;
     help: String;
     args: RegExp;
     action(msg: Message, message: String): void;
@@ -49,6 +57,7 @@ class HelpCommand implements BaseCommand {
         this.commandHandler = commandHandler;
     }
 
+    adminOnly = false;
     help = "Tells you about commands";
     args = new RegExp("help ([a-z]+)");
     public action(msg: Message, message: String) {
@@ -63,6 +72,7 @@ class HelpCommand implements BaseCommand {
 };
 
 class PingCommand implements BaseCommand {
+    adminOnly = false;
     help = "Causes bot to ping you after specified time. Usage: ping <time> <optional message>. Time is in minutes, but can be set in second and hours like 20s or 1h";
     args = new RegExp("(\\d+[sh]?) ?(.*)");
     public action(msg: Message, message: String) {
@@ -99,6 +109,7 @@ class PingCommand implements BaseCommand {
 };
 
 class NextSiegeCommand implements BaseCommand {
+    adminOnly = false;
     config: SiegeConfig;
     siegeSchedule: SiegeSchedule;
     constructor(config: SiegeConfig) {
@@ -116,6 +127,7 @@ class NextSiegeCommand implements BaseCommand {
 };
 
 export class NextLairCommand implements BaseCommand {
+    adminOnly = false;
     help = "Tells you when is next lair";
     args = new RegExp("");
     public action(msg: Message, message: String) {
@@ -161,6 +173,7 @@ export class NextLairCommand implements BaseCommand {
 };
 
 export class NextShieldCommand implements BaseCommand {
+    adminOnly = false;
     help = "Tells you when is next weekend league shield time";
     args = new RegExp("");
     public action(msg: Message, message: String) {
@@ -183,5 +196,27 @@ export class NextShieldCommand implements BaseCommand {
 
         const timeToNextMoment = SiegeSchedule.calculateTimetoNextMoment(new Date(), moments);
         return timeToNextMoment;
+    }
+};
+
+class DatabaseCommand implements BaseCommand {
+    adminOnly = true;
+    db: DatabaseConfig;
+    constructor(db: DatabaseConfig) {
+        this.db = db;
+    }
+
+    help = "Manage messages of database channel";
+    args = new RegExp("db (.+)");
+    public action(msg: Message, message: String) {
+        if (!this.db.enabled) return;
+        let parts = message.split(" ");
+        parts.shift();
+        let action = parts.shift();
+        if (action === "read") {
+            let channel: TextChannel = client.channels.cache.get(this.db.channel) as TextChannel;
+            channel.messages.fetch({ limit: 10 })
+                .then(messages => console.log(messages));
+        }
     }
 };
