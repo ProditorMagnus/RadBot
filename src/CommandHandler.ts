@@ -208,15 +208,92 @@ class DatabaseCommand implements BaseCommand {
 
     help = "Manage messages of database channel";
     args = new RegExp("db (.+)");
-    public action(msg: Message, message: String) {
+    public async action(msg: Message, message: String) {
         if (!this.db.enabled) return;
         let parts = message.split(" ");
         parts.shift();
         let action = parts.shift();
-        if (action === "read") {
+        let message_id = null;
+        let message_channel: TextChannel = null;
+        if (action.includes("rw")) {
+
             let channel: TextChannel = client.channels.cache.get(this.db.channel) as TextChannel;
-            channel.messages.fetch({ limit: 10 })
-                .then(messages => console.log(messages));
+            message_channel = channel;
+            await channel.messages.fetch({ limit: 10 })
+                .then(messages => {
+                    let first = messages.filter(m => m.editable).first();
+                    if (first) {
+                        message_id = first.id;
+                    }
+                });
+        }
+        if (action.includes("r")) {
+            // 0 5 10 15 20 = s1 s5 s9
+            // 1 6 11 16 21 = s2 s6 s10
+            // 2 7 12 17 22 = s3 s7 s11
+            // 3 8 13 18 23 = s4 s8
+
+            let collectSiegeStatus = function (hour: number, isSunday: boolean) {
+                // -9 filler to have 1-based index
+                // -1 = no info
+                // 0 = siege now
+                // 1 = siege in 1h
+                let siegeStatus: number[] = [-9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+                if (hour % 5 === 0) {
+                    siegeStatus[1] = 0;
+
+                    siegeStatus[2] = 1;
+                }
+                if (hour % 5 === 1) {
+                    siegeStatus[2] = 0;
+
+                    siegeStatus[7] = 1;
+                    siegeStatus[10] = 1;
+                }
+                if (hour % 5 === 2) {
+                    siegeStatus[7] = 0;
+                    siegeStatus[10] = 0;
+
+                    siegeStatus[4] = 1;
+                }
+                if (hour % 5 === 3) {
+                    siegeStatus[4] = 0;
+                }
+                if (hour % 5 === 4) {
+                    siegeStatus[1] = 1;
+                }
+                let output = [];
+                for (let i = 1; i < siegeStatus.length; i++) {
+                    const status = siegeStatus[i];
+                    if (status == 0) {
+                        output.push("Server " + i + " siege: ongoing");
+                    }
+                    if (status == 1) {
+                        output.push("Server " + i + " siege: upcoming");
+                    }
+
+                }
+                if (hour > 19 && isSunday) {
+                    output = ["Siege has ended"]
+                }
+                return output;
+            };
+
+            let publishSiegeStatus = function () {
+                let hour = new Date().getUTCHours();
+                let isSunday = new Date().getDay() % 7 == 0;
+                let output = collectSiegeStatus(hour, isSunday);
+                if (message_channel && message_id) {
+                    message_channel.messages.fetch(message_id).then(m => m.edit(output.join("\n")));
+                    let hourStart = new Date();
+                    hourStart.setMinutes(0, 0, 0);
+                    setTimeout(publishSiegeStatus, hourStart.getTime() + Utils.hourMs - new Date().getTime());
+                    // msg.reply("Updated previous message and added new alert in " + (hourStart.getTime() + Utils.hourMs - new Date().getTime()) / Utils.hourMs + " hours");
+                } else {
+                    msg.reply(output.join("\n"));
+                }
+            };
+            publishSiegeStatus();
         }
     }
 };
