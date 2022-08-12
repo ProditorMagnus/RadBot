@@ -9,6 +9,7 @@ export interface Config {
     siege: SiegeConfig[];
     shield: ShieldConfig;
     db: DatabaseConfig;
+    siegeStatus: SiegeStatusConfig;
 }
 
 export interface SiegeConfig extends PingConfig {
@@ -42,4 +43,10 @@ export interface DatabaseConfig {
     enabled: boolean;
     guild: string;
     channel: string;
+}
+
+export interface SiegeStatusConfig {
+    enabled: boolean;
+    channelId: string;
+    messageId: string;
 }

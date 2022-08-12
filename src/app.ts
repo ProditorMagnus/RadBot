@@ -2,7 +2,7 @@ import { Client, Message, TextChannel } from 'discord.js';
 import { Config, PingConfig, ShieldConfig, SiegeConfig } from './Config';
 import { SiegeSchedule } from './SiegeSchedule';
 import { PollController } from './PollController';
-import { CommandHandler, NextLairCommand, NextShieldCommand } from './CommandHandler';
+import { CommandHandler, DatabaseCommand, NextLairCommand, NextShieldCommand } from './CommandHandler';
 import { Utils } from './Utils';
 require('dotenv').config();
 
@@ -111,8 +111,13 @@ const config = {
     enabled: true,
     guild: "829794369888059392",
     channel: "892148021758935111"
-  }
+  },
 
+  siegeStatus: {
+    enabled: true,
+    channelId: "983187637802262568",
+    messageId: "1007684995994898432"
+  }
 } as Config;
 const pollController = new PollController(config);
 const commandHandler = new CommandHandler(config);
@@ -147,6 +152,9 @@ client.on('ready', () => {
     }, timeToNextPoll);
   }
   ws.setNextDraadorPoll();
+  if (config.siegeStatus.enabled) {
+    DatabaseCommand.publishSiegeStatus(config.siegeStatus.channelId, config.siegeStatus.messageId);
+  }
   sendDebugMessage("Bot is online");
 })
 

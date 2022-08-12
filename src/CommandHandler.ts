@@ -199,7 +199,7 @@ export class NextShieldCommand implements BaseCommand {
     }
 };
 
-class DatabaseCommand implements BaseCommand {
+export class DatabaseCommand implements BaseCommand {
     adminOnly = true;
     db: DatabaseConfig;
     constructor(db: DatabaseConfig) {
@@ -233,56 +233,11 @@ class DatabaseCommand implements BaseCommand {
             // 2 7 12 17 22 = s3 s7 s11
             // 3 8 13 18 23 = s4 s8
 
-            let collectSiegeStatus = function (hour: number, isSunday: boolean) {
-                // -9 filler to have 1-based index
-                // -1 = no info
-                // 0 = siege now
-                // 1 = siege in 1h
-                let siegeStatus: number[] = [-9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
-                if (hour % 5 === 0) {
-                    siegeStatus[1] = 0;
-
-                    siegeStatus[2] = 1;
-                }
-                if (hour % 5 === 1) {
-                    siegeStatus[2] = 0;
-
-                    siegeStatus[7] = 1;
-                    siegeStatus[10] = 1;
-                }
-                if (hour % 5 === 2) {
-                    siegeStatus[7] = 0;
-                    siegeStatus[10] = 0;
-
-                    siegeStatus[4] = 1;
-                }
-                if (hour % 5 === 3) {
-                    siegeStatus[4] = 0;
-                }
-                if (hour % 5 === 4) {
-                    siegeStatus[1] = 1;
-                }
-                let output = [];
-                for (let i = 1; i < siegeStatus.length; i++) {
-                    const status = siegeStatus[i];
-                    if (status == 0) {
-                        output.push("Server " + i + " siege: ongoing");
-                    }
-                    if (status == 1) {
-                        output.push("Server " + i + " siege: upcoming");
-                    }
-
-                }
-                if (hour > 19 && isSunday) {
-                    output = ["Siege has ended"]
-                }
-                return output;
-            };
-
+            // TODO get rid of this command version
             let publishSiegeStatus = function () {
                 let hour = new Date().getUTCHours();
                 let isSunday = new Date().getDay() % 7 == 0;
-                let output = collectSiegeStatus(hour, isSunday);
+                let output = DatabaseCommand.collectSiegeStatus(hour, isSunday);
                 if (message_channel && message_id) {
                     message_channel.messages.fetch(message_id).then(m => m.edit(output.join("\n")));
                     let hourStart = new Date();
@@ -295,5 +250,67 @@ class DatabaseCommand implements BaseCommand {
             };
             publishSiegeStatus();
         }
+    }
+
+    public static collectSiegeStatus(hour: number, isSunday: boolean) {
+        // -9 filler to have 1-based index
+        // -1 = no info
+        // 0 = siege now
+        // 1 = siege in 1h
+        let siegeStatus: number[] = [-9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+        if (hour % 5 === 0) {
+            siegeStatus[1] = 0;
+
+            siegeStatus[2] = 1;
+        }
+        if (hour % 5 === 1) {
+            siegeStatus[2] = 0;
+
+            siegeStatus[7] = 1;
+            siegeStatus[10] = 1;
+        }
+        if (hour % 5 === 2) {
+            siegeStatus[7] = 0;
+            siegeStatus[10] = 0;
+
+            siegeStatus[4] = 1;
+        }
+        if (hour % 5 === 3) {
+            siegeStatus[4] = 0;
+        }
+        if (hour % 5 === 4) {
+            siegeStatus[1] = 1;
+        }
+        let output = [];
+        for (let i = 1; i < siegeStatus.length; i++) {
+            const status = siegeStatus[i];
+            if (status == 0) {
+                output.push("Server " + i + " siege: ongoing");
+            }
+            if (status == 1) {
+                output.push("Server " + i + " siege: upcoming");
+            }
+
+        }
+        if (hour > 19 && isSunday) {
+            output = ["Siege has ended"]
+        }
+        output.push("Updated: " + new Date());
+        return output;
+    }
+
+    public static publishSiegeStatus(channelId: string, messageId: string) {
+        let main = function () {
+            let messageChannel = client.channels.cache.get(channelId) as TextChannel;
+            let hour = new Date().getUTCHours();
+            let isSunday = new Date().getDay() % 7 == 0;
+            let output = DatabaseCommand.collectSiegeStatus(hour, isSunday);
+
+            messageChannel.messages.fetch(messageId).then(m => m.edit(output.join("\n")));
+            let hourStart = new Date();
+            hourStart.setMinutes(0, 0, 0);
+            setTimeout(main, hourStart.getTime() + Utils.hourMs - new Date().getTime());
+        }
+        main();
     }
 };
