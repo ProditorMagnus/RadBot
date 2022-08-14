@@ -292,8 +292,12 @@ export class DatabaseCommand implements BaseCommand {
             }
 
         }
-        if (hour >= 19 && hour < 23 && isSunday) {
-            output = ["Siege has ended"]
+        if (hour >= 19 && isSunday) {
+            if (hour == 23) {
+                output = ["Server 1 siege: upcoming"];
+            } else {
+                output = ["Siege has ended"];
+            }
         }
         output.push("Updated: " + new Date());
         return output;
