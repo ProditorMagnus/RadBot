@@ -104,7 +104,7 @@ class PingCommand implements BaseCommand {
                 reactions.users.remove();
             }
         }, time);
-        console.log("CommandHandler", "Will ping in " + time);
+        console.log("CommandHandler", "Will ping in " + Utils.formatDuration(time));
     }
 };
 
@@ -122,7 +122,7 @@ class NextSiegeCommand implements BaseCommand {
     public action(msg: Message, message: String) {
         const nextMoment = this.siegeSchedule.getNextSiegeMoments(new Date())[0];
         const timeToNextMoment = nextMoment.getTime() - new Date().getTime();
-        msg.channel.send("Next siege: " + Utils.displayDate(nextMoment) + ". " + "Hours left: " + timeToNextMoment / Utils.hourMs);
+        msg.channel.send("Next siege is in " + Utils.formatDuration(timeToNextMoment));
     }
 };
 
@@ -134,7 +134,7 @@ export class NextLairCommand implements BaseCommand {
         const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment();
         // wednesday 18gmt
         // saturday 14gmt
-        msg.channel.send("Next lair starts in: " + timeToNextMoment / Utils.hourMs + " hours");
+        msg.channel.send("Next lair starts in: " + Utils.formatDuration(timeToNextMoment));
     }
 
     public static getTimeToNextLairMoment() {
@@ -178,7 +178,7 @@ export class NextShieldCommand implements BaseCommand {
     args = new RegExp("");
     public action(msg: Message, message: String) {
         const timeToNextMoment = NextShieldCommand.getTimeToNextShieldMoment();
-        msg.channel.send("Next shield should be used in: " + timeToNextMoment / Utils.hourMs + " hours");
+        msg.channel.send("Next shield should be used in " + Utils.formatDuration(timeToNextMoment));
     }
 
     public static getTimeToNextShieldMoment() {

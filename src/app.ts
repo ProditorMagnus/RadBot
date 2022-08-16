@@ -238,6 +238,7 @@ function sendPingMessage(pingConfig: PingConfig) {
 
 function sendDebugMessage(message: string) {
   console.log("DEBUG", message);
+  message = "" + message;
   (client.channels.cache.get(config.debugChannel) as TextChannel).send(message);
 }
 
