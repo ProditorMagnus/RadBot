@@ -318,29 +318,39 @@ export class DatabaseCommand implements BaseCommand {
             let isSunday = new Date().getDay() % 7 == 0;
             let output = DatabaseCommand.collectSiegeStatus(hour, isSunday);
 
-            await messageChannel.messages.fetch({ limit: 5 })
+            await messageChannel.messages.fetch({ limit: 10 })
                 .then(messages => {
                     let editable = messages.filter(m => m.editable);
-                    let first = editable.first();
-                    let second = editable.filter(m => m !== first).first();
+                    let [first, second, third] = editable.first(3);
+                    let firstId, secondId;
 
                     if (first) {
-                        messageId = first.id;
+                        firstId = first.id;
                     }
-                    // clean up siege alerts which happened during restart time
                     if (second) {
-                        second.delete();
+                        secondId = second.id;
+                    }
+
+                    // at hour start, most recent message is siege alert, second oldest should be siege status, third oldest should be deleted
+                    // but when bot is started, then most recent message is not alert
+                    // if there are 3 messages, delete third
+                    // if there are at least 2 messages, first is set to status, second is set to what was in first
+
+                    // clean up siege alerts which happened during restart time
+                    if (third) {
+                        third.delete();
+                    }
+
+                    if (second) {
+                        messageChannel.messages.fetch(firstId).then(m => m.edit(output.join("\n")));
+                        messageChannel.messages.fetch(secondId).then(m => m.edit(first.content));
+                    } else {
+                        messageChannel.send(output.join("\n"));
                     }
                 });
-
-            if (messageId) {
-                messageChannel.messages.fetch(messageId).then(m => m.edit(output.join("\n")));
-            } else {
-                messageChannel.send(output.join("\n"));
-            }
-            let hourStart = new Date();
-            hourStart.setMinutes(0, 0, 0);
-            setTimeout(main, hourStart.getTime() + Utils.hourMs - new Date().getTime());
+                let hourStart = new Date();
+                hourStart.setMinutes(0, 0, 0);
+                setTimeout(main, hourStart.getTime() + Utils.hourMs - new Date().getTime());
         }
         main();
     }
