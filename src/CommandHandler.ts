@@ -288,7 +288,9 @@ export class DatabaseCommand implements BaseCommand {
                 output.push("Server " + i + " siege: ongoing");
             }
             if (status == 1) {
-                output.push("Server " + i + " siege: upcoming");
+                let hourStart = new Date();
+                hourStart.setMinutes(0, 0, 0);
+                output.push("Server " + i + " siege: upcoming <t:" + (hourStart.getTime() + Utils.hourMs) / 1000 + ":R>");
             }
 
         }
@@ -310,6 +312,7 @@ export class DatabaseCommand implements BaseCommand {
             let isSunday = new Date().getDay() % 7 == 0;
             let output = DatabaseCommand.collectSiegeStatus(hour, isSunday);
 
+            // TODO error handling if message is not there
             messageChannel.messages.fetch(messageId).then(m => m.edit(output.join("\n")));
             let hourStart = new Date();
             hourStart.setMinutes(0, 0, 0);
