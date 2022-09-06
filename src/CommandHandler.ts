@@ -92,7 +92,10 @@ class PingCommand implements BaseCommand {
             timeWithoutUnit = timeWithUnit.substr(0, timeWithUnit.length - 1);
         }
         const time = parseInt(timeWithoutUnit) * unit;
-        const reason = match[2];
+        let reason = match[2];
+        if (!reason) {
+            reason = Utils.formatDiscordTimestamp(new Date().getTime());
+        }
         const emote = "⏱️";
         msg.react(emote);
         setTimeout(function () {
@@ -290,30 +293,51 @@ export class DatabaseCommand implements BaseCommand {
             if (status == 1) {
                 let hourStart = new Date();
                 hourStart.setMinutes(0, 0, 0);
-                output.push("Server " + i + " siege: upcoming <t:" + (hourStart.getTime() + Utils.hourMs) / 1000 + ":R>");
+                output.push("Server " + i + " siege: upcoming " + Utils.formatDiscordTimestamp(hourStart.getTime() + Utils.hourMs));
             }
 
         }
         if (hour >= 19 && isSunday) {
             if (hour == 23) {
-                output = ["Server 1 siege: upcoming"];
+                let hourStart = new Date();
+                hourStart.setMinutes(0, 0, 0);
+                output = ["Server 1 siege: upcoming " + Utils.formatDiscordTimestamp(hourStart.getTime() + Utils.hourMs)];
             } else {
                 output = ["Siege has ended"];
             }
         }
-        output.push("Updated: <t:" + Math.floor(new Date().getTime() / 1000) + ":R>");
+        output.push("Updated: " + Utils.formatDiscordTimestamp(new Date().getTime()));
         return output;
     }
 
     public static publishSiegeStatus(channelId: string, messageId: string) {
-        let main = function () {
+        messageId = null; // TODO remove config parameter
+        let main = async function () {
             let messageChannel = client.channels.cache.get(channelId) as TextChannel;
             let hour = new Date().getUTCHours();
             let isSunday = new Date().getDay() % 7 == 0;
             let output = DatabaseCommand.collectSiegeStatus(hour, isSunday);
 
-            // TODO error handling if message is not there
-            messageChannel.messages.fetch(messageId).then(m => m.edit(output.join("\n")));
+            await messageChannel.messages.fetch({ limit: 5 })
+                .then(messages => {
+                    let editable = messages.filter(m => m.editable);
+                    let first = editable.first();
+                    let second = editable.filter(m => m !== first).first();
+
+                    if (first) {
+                        messageId = first.id;
+                    }
+                    // clean up siege alerts which happened during restart time
+                    if (second) {
+                        second.delete();
+                    }
+                });
+
+            if (messageId) {
+                messageChannel.messages.fetch(messageId).then(m => m.edit(output.join("\n")));
+            } else {
+                messageChannel.send(output.join("\n"));
+            }
             let hourStart = new Date();
             hourStart.setMinutes(0, 0, 0);
             setTimeout(main, hourStart.getTime() + Utils.hourMs - new Date().getTime());

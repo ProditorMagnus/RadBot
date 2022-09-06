@@ -19,4 +19,8 @@ export abstract class Utils {
             return minutes + "m " + seconds + "s";
         }
     }
+
+    static formatDiscordTimestamp(ms: number) {
+        return "<t:" + Math.floor(ms / 1000) + ":R>";
+    }
 }
