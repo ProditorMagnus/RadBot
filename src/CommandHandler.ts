@@ -301,7 +301,7 @@ export class DatabaseCommand implements BaseCommand {
                 output = ["Siege has ended"];
             }
         }
-        output.push("Updated: " + new Date());
+        output.push("Updated: <t:" + Math.floor(new Date().getTime() / 1000) + ":R>");
         return output;
     }
 
