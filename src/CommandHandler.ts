@@ -322,19 +322,11 @@ export class DatabaseCommand implements BaseCommand {
                 .then(messages => {
                     let editable = messages.filter(m => m.editable);
                     let [first, second, third] = editable.first(3);
-                    let firstId, secondId;
 
-                    if (first) {
-                        firstId = first.id;
-                    }
-                    if (second) {
-                        secondId = second.id;
-                    }
-
-                    // at hour start, most recent message is siege alert, second oldest should be siege status, third oldest should be deleted
-                    // but when bot is started, then most recent message is not alert
-                    // if there are 3 messages, delete third
-                    // if there are at least 2 messages, first is set to status, second is set to what was in first
+                    // if third message exists, delete third message
+                    // if second message exists, edit second message
+                    // if second message does not exist but first exists, edit first message
+                    // if first message does not exist, post new message
 
                     // clean up siege alerts which happened during restart time
                     if (third) {
@@ -342,15 +334,16 @@ export class DatabaseCommand implements BaseCommand {
                     }
 
                     if (second) {
-                        messageChannel.messages.fetch(firstId).then(m => m.edit(output.join("\n")));
-                        messageChannel.messages.fetch(secondId).then(m => m.edit(first.content));
+                        second.edit((output.join("\n")));
+                    } else if (first) {
+                        first.edit((output.join("\n")));
                     } else {
                         messageChannel.send(output.join("\n"));
                     }
                 });
-                let hourStart = new Date();
-                hourStart.setMinutes(0, 0, 0);
-                setTimeout(main, hourStart.getTime() + Utils.hourMs - new Date().getTime());
+            let hourStart = new Date();
+            hourStart.setMinutes(0, 0, 0);
+            setTimeout(main, hourStart.getTime() + Utils.hourMs - new Date().getTime());
         }
         main();
     }
