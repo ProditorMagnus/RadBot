@@ -74,14 +74,15 @@ class HelpCommand implements BaseCommand {
 class PingCommand implements BaseCommand {
     adminOnly = false;
     help = "Causes bot to ping you after specified time. Usage: ping <time> <optional message>. Time is in minutes, but can be set in second and hours like 20s or 1h";
-    args = new RegExp("(\\d+[sh]?) ?(.*)");
+    args = new RegExp("(c? ?)(\\d+[sh]?) ?(.*)");
     public action(msg: Message, message: String) {
         const match: RegExpMatchArray = message.match(this.args);
         if (!match) {
             msg.channel.send("<@" + msg.member.id + "> " + "Unable to parse command arguments, expected " + this.args.source + ". " + this.help);
             return;
         }
-        const timeWithUnit = match[1];
+        const flags = match[1];
+        const timeWithUnit = match[2];
         let timeWithoutUnit = timeWithUnit;
         let unit = Utils.minuteMs;
         if (timeWithUnit.endsWith("s")) {
@@ -92,12 +93,15 @@ class PingCommand implements BaseCommand {
             timeWithoutUnit = timeWithUnit.substr(0, timeWithUnit.length - 1);
         }
         const time = parseInt(timeWithoutUnit) * unit;
-        let reason = match[2];
+        let reason = match[3];
         if (!reason) {
             reason = Utils.formatDiscordTimestamp(new Date().getTime());
         }
         const emote = "⏱️";
         msg.react(emote);
+        if (flags.includes("c")) {
+            msg.channel.send(Utils.formatDiscordTimestamp(new Date().getTime() + time));
+        }
         setTimeout(function () {
             msg.channel.send("<@" + msg.member.id + "> " + reason);
             if (msg.deleted) return;
