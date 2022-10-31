@@ -62,7 +62,7 @@ const config = {
       serverOffset: 0,
       enabled: true,
       advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
-      pingRole: "830168692373192745",
+      pingRole: "0",
       pingMessage: "Time to siege on s1!",
       outputChannel: "983187637802262568",
       cleanConfig: {
@@ -74,7 +74,7 @@ const config = {
       serverOffset: 1,
       enabled: true,
       advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
-      pingRole: "830168692373192745",
+      pingRole: "0",
       pingMessage: "Time to siege on s2!",
       outputChannel: "983187637802262568",
       cleanConfig: {
