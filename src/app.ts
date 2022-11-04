@@ -82,6 +82,18 @@ const config = {
         delayMs: Utils.hourMs,
       },
     },
+    {
+      serverOffset: 3,
+      enabled: true,
+      advanceWarningTime: 5 * Utils.minuteMs,
+      pingRole: "0",
+      pingMessage: "Time to siege!",
+      outputChannel: "1038023007475605554", // SalVaTion
+      cleanConfig: {
+        enabled: true,
+        delayMs: Utils.hourMs,
+      },
+    },
   ],
 
   shield: {
