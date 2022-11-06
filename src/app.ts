@@ -86,7 +86,7 @@ const config = {
       serverOffset: 3,
       enabled: true,
       advanceWarningTime: 5 * Utils.minuteMs,
-      pingRole: "1032659524877832192",
+      pingRole: "1038799565492596756",
       pingMessage: "Time to siege!",
       outputChannel: "1038023007475605554", // SalVaTion
       cleanConfig: {
