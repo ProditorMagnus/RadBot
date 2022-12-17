@@ -21,7 +21,7 @@ const config = {
 
   lair: {
     fight: {
-      enabled: !!process.env.ENABLE_LAIR_PING,
+      enabled: true,
       advanceWarningTime: (parseInt(process.env.LAIR_ADVANCE_WARNING_TIME) || 5) * Utils.minuteMs,
       pingRole: process.env.LAIR_PING_ROLE || "903673094336573482",
       pingMessage: process.env.LAIR_PING_MESSAGE || "Time for lair!",
@@ -33,7 +33,7 @@ const config = {
     },
 
     camp: {
-      enabled: !!process.env.ENABLE_LAIR_PING,
+      enabled: true,
       advanceWarningTime: (parseInt(process.env.LAIR_ADVANCE_WARNING_TIME) || 5) * Utils.minuteMs,
       pingMessage: process.env.LAIR_CAMP_PING_MESSAGE || "Heroes to camp!",
       pingRole: process.env.LAIR_CAMP_PING_ROLE || "955588022282358865",
@@ -60,7 +60,7 @@ const config = {
     },
     {
       serverOffset: 0,
-      enabled: true,
+      enabled: false,
       advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
       pingRole: "0",
       pingMessage: "Time to siege on s1!",
@@ -72,7 +72,7 @@ const config = {
     },
     {
       serverOffset: 1,
-      enabled: true,
+      enabled: false,
       advanceWarningTime: (parseInt(process.env.ADVANCE_WARNING_TIME) || 2) * Utils.minuteMs,
       pingRole: "0",
       pingMessage: "Time to siege on s2!",
@@ -143,7 +143,8 @@ client.on('ready', () => {
     ws.setNextLairAlert = function () {
       const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment() - config.lair.fight.advanceWarningTime;
       setTimeout(function () {
-        sendPingMessage(config.lair.fight)
+        sendPingMessage(config.lair.fight);
+        ws.setNextLairAlert();
       }, timeToNextMoment);
     }
     if (config.lair.camp.enabled) {
@@ -161,6 +162,7 @@ client.on('ready', () => {
       - new Date().getTime();
     setTimeout(function () {
       pollController.doPoll(client.channels.cache.get(config.pollChannel) as TextChannel, "poll 6 How many draadors you found on the week " + new Date(nextWeekStart).toDateString() + " - " + new Date(nextWeekStart + 6 * 24 * Utils.hourMs).toDateString());
+      ws.setNextDraadorPoll();
     }, timeToNextPoll);
   }
   ws.setNextDraadorPoll();
@@ -219,6 +221,9 @@ function setShieldAlert(shieldConfig: ShieldConfig) {
       sendPingMessage(shieldConfig.lastMomentWarning);
     }, timeToNextMoment - shieldConfig.lastMomentWarning.advanceWarningTime);
   }
+  setTimeout(function () {
+    setShieldAlert(shieldConfig);
+  }, timeToNextMoment + 1);
 }
 
 function setSiegeAlert(siege: SiegeConfig) {
@@ -251,7 +256,7 @@ function sendPingMessage(pingConfig: PingConfig) {
 function sendDebugMessage(message: string) {
   console.log("DEBUG", message);
   message = "" + message;
-  (client.channels.cache.get(config.debugChannel) as TextChannel).send(message);
+  //(client.channels.cache.get(config.debugChannel) as TextChannel).send(message);
 }
 
 function shutdown(signal) {
