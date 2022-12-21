@@ -144,7 +144,7 @@ client.on('ready', () => {
       const timeToNextMoment = NextLairCommand.getTimeToNextLairMoment() - config.lair.fight.advanceWarningTime;
       setTimeout(function () {
         sendPingMessage(config.lair.fight);
-        ws.setNextLairAlert();
+        setTimeout(function () { ws.setNextLairAlert(); }, Utils.dayMs);
       }, timeToNextMoment);
     }
     if (config.lair.camp.enabled) {
@@ -162,7 +162,7 @@ client.on('ready', () => {
       - new Date().getTime();
     setTimeout(function () {
       pollController.doPoll(client.channels.cache.get(config.pollChannel) as TextChannel, "poll 6 How many draadors you found on the week " + new Date(nextWeekStart).toDateString() + " - " + new Date(nextWeekStart + 6 * 24 * Utils.hourMs).toDateString());
-      ws.setNextDraadorPoll();
+      setTimeout(function(){ws.setNextDraadorPoll();}, Utils.dayMs);
     }, timeToNextPoll);
   }
   ws.setNextDraadorPoll();
@@ -214,6 +214,9 @@ function setShieldAlert(shieldConfig: ShieldConfig) {
   if (shieldConfig.enabled && timeToNextMoment - shieldConfig.advanceWarningTime > 0) {
     setTimeout(function () {
       sendPingMessage(shieldConfig);
+      setTimeout(function () {
+        setShieldAlert(shieldConfig);
+      }, timeToNextMoment + Utils.hourMs);
     }, timeToNextMoment - shieldConfig.advanceWarningTime);
   }
   if (shieldConfig.lastMomentWarning.enabled && timeToNextMoment - shieldConfig.lastMomentWarning.advanceWarningTime > 0) {
@@ -221,9 +224,6 @@ function setShieldAlert(shieldConfig: ShieldConfig) {
       sendPingMessage(shieldConfig.lastMomentWarning);
     }, timeToNextMoment - shieldConfig.lastMomentWarning.advanceWarningTime);
   }
-  setTimeout(function () {
-    setShieldAlert(shieldConfig);
-  }, timeToNextMoment + 1);
 }
 
 function setSiegeAlert(siege: SiegeConfig) {
