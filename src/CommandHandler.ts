@@ -361,6 +361,8 @@ export class QuitCommand implements BaseCommand {
     args = new RegExp("(.+)");
     public async action(msg: Message, message: String) {
         msg.reply("Quitting");
-        process.exit(0);
+        setTimeout(function () {
+            process.exit(0);
+        }, 1000);
     }
 }

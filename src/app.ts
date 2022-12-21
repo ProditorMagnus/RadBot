@@ -190,9 +190,10 @@ client.on('message', (msg) => {
 
   if (message.startsWith("eval ")) {
     try {
-      let result = eval(message.slice(5));
-      console.log(result);
-      (client.channels.cache.get(config.debugChannel) as TextChannel).send("Eval finished. " + result);
+      let expression = message.slice(5);
+      let result = eval(expression);
+      console.log(expression + " = " + result);
+      (client.channels.cache.get(config.debugChannel) as TextChannel).send(expression + " = " + result);
     } catch (e) {
       reportError(e);
     }
