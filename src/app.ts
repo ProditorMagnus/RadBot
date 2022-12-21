@@ -162,7 +162,7 @@ client.on('ready', () => {
       - new Date().getTime();
     setTimeout(function () {
       pollController.doPoll(client.channels.cache.get(config.pollChannel) as TextChannel, "poll 6 How many draadors you found on the week " + new Date(nextWeekStart).toDateString() + " - " + new Date(nextWeekStart + 6 * 24 * Utils.hourMs).toDateString());
-      setTimeout(function(){ws.setNextDraadorPoll();}, Utils.dayMs);
+      setTimeout(function () { ws.setNextDraadorPoll(); }, Utils.dayMs);
     }, timeToNextPoll);
   }
   ws.setNextDraadorPoll();
@@ -188,6 +188,16 @@ client.on('message', (msg) => {
     return;
   }
 
+  if (message.startsWith("eval ")) {
+    try {
+      let result = eval(message.slice(5));
+      console.log(result);
+      (client.channels.cache.get(config.debugChannel) as TextChannel).send("Eval finished. " + result);
+    } catch (e) {
+      reportError(e);
+    }
+  }
+
   if (message.startsWith("set")) {
     const parts = message.split(" ");
     if (message.startsWith("set prefix")) {
@@ -200,9 +210,15 @@ client.on('message', (msg) => {
     } else if (message.startsWith("set float ")) {
       config[parts[2]] = parseFloat(parts.slice(3).join(" "));
     } else if (message.startsWith("set eval ")) {
-      eval("config." + parts.slice(2).join(" "))
+      try {
+        let result = eval("config." + parts.slice(2).join(" "));
+        console.log(result);
+        (client.channels.cache.get(config.debugChannel) as TextChannel).send("Eval finished. " + result);
+      } catch (e) {
+        reportError(e);
+      }
     } else {
-      msg.channel.send("set prefix <prefix>|str/int/float <key> <value>]|eval ");
+      msg.channel.send("set prefix <prefix>|str/int/float <key> <value>]eval x=process.exit(0)");
     }
 
     msg.channel.send(JSON.stringify(config));

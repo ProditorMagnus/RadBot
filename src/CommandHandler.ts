@@ -19,6 +19,7 @@ export class CommandHandler {
             "shield": new NextShieldCommand(),
             "lair": new NextLairCommand(),
             "db": new DatabaseCommand(this.config.db),
+            "quit": new QuitCommand(),
         }
     }
 
@@ -352,3 +353,14 @@ export class DatabaseCommand implements BaseCommand {
         main();
     }
 };
+
+export class QuitCommand implements BaseCommand {
+    adminOnly = true;
+
+    help = "Quit bot";
+    args = new RegExp("(.+)");
+    public async action(msg: Message, message: String) {
+        msg.reply("Quitting");
+        process.exit(0);
+    }
+}
