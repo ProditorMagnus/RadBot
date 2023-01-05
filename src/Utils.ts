@@ -1,3 +1,5 @@
+import { DMChannel, NewsChannel, TextChannel } from "discord.js";
+
 export abstract class Utils {
     static readonly secondMs = 1000;
     static readonly minuteMs = Utils.secondMs * 60;
@@ -27,5 +29,11 @@ export abstract class Utils {
 
     static formatDiscordTimestamp(ms: number) {
         return "<t:" + Math.floor(ms / 1000) + ":R>";
+    }
+
+    static sendLongString(channel: TextChannel | DMChannel | NewsChannel, s: string) {
+        for (let i = 0; i < s.length; i += 1999) {
+            channel.send(s.substring(i, i + 1999));
+        }
     }
 }

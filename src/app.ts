@@ -222,7 +222,7 @@ client.on('message', (msg) => {
       msg.channel.send("set prefix <prefix>|str/int/float <key> <value>]eval x=process.exit(0)");
     }
 
-    msg.channel.send(JSON.stringify(config));
+    Utils.sendLongString(msg.channel, JSON.stringify(config));
   }
 });
 
