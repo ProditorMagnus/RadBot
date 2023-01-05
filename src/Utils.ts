@@ -11,9 +11,14 @@ export abstract class Utils {
     static formatDuration(ms: number) {
         let minutes = Math.floor((ms / Utils.minuteMs) % 60);
         let hours = Math.floor((ms / Utils.hourMs) % 24);
+        let days = Math.floor(ms / Utils.dayMs);
 
-        if (hours > 0) {
-            return hours + "h " + minutes + "m";
+        if (hours > 0 || days > 0) {
+            if (days > 0) {
+                return days + "d " + hours + "h " + minutes + "m";
+            } else {
+                return hours + "h " + minutes + "m";
+            }
         } else {
             let seconds = Math.floor((ms / Utils.secondMs) % 60);
             return minutes + "m " + seconds + "s";
