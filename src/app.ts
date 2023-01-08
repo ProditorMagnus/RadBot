@@ -233,7 +233,7 @@ function setShieldAlert(shieldConfig: ShieldConfig) {
       sendPingMessage(shieldConfig);
       setTimeout(function () {
         setShieldAlert(shieldConfig);
-      }, timeToNextMoment + Utils.hourMs);
+      }, Utils.hourMs);
     }, timeToNextMoment - shieldConfig.advanceWarningTime);
   }
   if (shieldConfig.lastMomentWarning.enabled && timeToNextMoment - shieldConfig.lastMomentWarning.advanceWarningTime > 0) {
