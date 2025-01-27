@@ -16,7 +16,7 @@ const ws = {
 const config = {
   prefix: process.env.PREFIX || "<",
   debugChannel: process.env.DEBUG_CHANNEL || "829794369888059395",
-  pollChannel: process.env.POLL_CHANNEL || "856267796504772649",
+  pollChannel: process.env.POLL_CHANNEL,
   adminUser: process.env.ADMIN_USER || "175293761323008000",
 
   lair: {
@@ -156,6 +156,9 @@ client.on('ready', () => {
     ws.setNextLairAlert();
   }
   ws.setNextDraadorPoll = function () {
+    if (!config.pollChannel) {
+      return;
+    }
     const nextWeekStart = new Date().setUTCHours(0, 0, 0, 0)
       + ((7 - new Date().getUTCDay()) % 7 + 1) * Utils.hourMs * 24;
     const timeToNextPoll = nextWeekStart
