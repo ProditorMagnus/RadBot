@@ -127,8 +127,8 @@ const config = {
 
   siegeStatus: {
     enabled: true,
-    channelId: "983187637802262568",
-    messageId: "1007684995994898432"
+    channelId: "717578823255720036",
+    messageId: ""
   }
 } as Config;
 const pollController = new PollController(config);
